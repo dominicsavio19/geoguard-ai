@@ -16,27 +16,24 @@
 <section id="rescue" class="page"><div class="top"><div><small>FIELD RESPONSE</small><h2>Rescue Operations</h2></div></div><div id="rescueGrid" class="rescuegrid"></div></section>
 </main></div><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-/* Navigation is deliberately non-module so the Admin tabs still work
-   even if Firebase/network code has a temporary error. */
 window.showPage = function(id){
-  document.querySelectorAll(".page").forEach(function(p){p.classList.remove("active");});
-  var target=document.getElementById(id);
-  if(target) target.classList.add("active");
+  document.querySelectorAll(".page").forEach(function(p){ p.hidden = (p.id !== id); });
   var order=["overview","map","reports","sos","broadcast","rescue"];
   document.querySelectorAll(".nav").forEach(function(n,i){
-    n.classList.toggle("active", order[i]===id);
+    n.classList.toggle("active", order[i] === id);
   });
   var titles={overview:"Regional Command Center",map:"Live Risk Map",reports:"Hazard Reports",sos:"SOS Center",broadcast:"Broadcast Alert",rescue:"Rescue Operations"};
   var title=document.getElementById("pageTitle");
-  if(title) title.textContent=titles[id]||"Regional Command Center";
-  if(window.renderCurrentPage) setTimeout(window.renderCurrentPage,0);
-  if(id==="map" && window.invalidateHorizonMaps){
-    setTimeout(window.invalidateHorizonMaps,120);
-  }
+  if(title) title.textContent=titles[id] || "Regional Command Center";
+  if(window.renderCurrentPage) setTimeout(window.renderCurrentPage, 0);
+  if(id==="map" && window.openHorizonMainMap) setTimeout(window.openHorizonMainMap, 50);
 };
-window.addEventListener("error",function(e){
+window.addEventListener("error", function(e){
   var s=document.getElementById("status");
-  if(s && e.message) s.textContent="UI online · data connection needs attention";
+  if(s && e.message) s.textContent="UI online · check data/map connection";
+});
+document.addEventListener("DOMContentLoaded", function(){
+  document.querySelectorAll(".page").forEach(function(p){ p.hidden = (p.id !== "overview"); });
 });
 </script>
 <script type="module" src="app.js"></script></body></html>

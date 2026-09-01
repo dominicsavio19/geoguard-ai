@@ -58,8 +58,25 @@ window.resolveSOS=id=>update(ref(db,"sos/"+id),{status:"RESOLVED",resolvedAt:ser
 function renderBroadcasts(){$("broadcastList").innerHTML=alerts.slice(0,8).map(a=>`<div class=item><span class=pill>${esc(a.severity||"INFO")}</span><b>🚨 ${esc(a.title||"Alert")}</b><small>${esc(a.message||"")}</small></div>`).join("")||"<div class=item>No broadcasts yet.</div>"}
 function renderRescue(){const a=sos.filter(x=>String(x.status||"ACTIVE").toUpperCase()==="ACTIVE");$("rescueGrid").innerHTML=a.map((x,i)=>`<div class="card rescue"><h3>Response Unit ${String(i+1).padStart(2,"0")}</h3><p>${esc(x.userName||"Mobile user")}</p><div class=unit>INCIDENT: SOS ACTIVE<br><br>LOCATION: ${x.latitude!=null?safeNum(x.latitude).toFixed(5)+", "+safeNum(x.longitude).toFixed(5):"GPS pending"}</div></div>`).join("")||"<div class='card rescue'>No active rescue operations.</div>"}
 
+
+window.sendAlert=async()=>{
+  const title=$("alertTitle").value.trim(), message=$("alertMessage").value.trim();
+  if(!title||!message){ $("alertStatus").textContent="Title and message are required."; return; }
+  const target=[...document.querySelectorAll("#stateChecks input:checked")].map(x=>x.value);
+  try{
+    await push(ref(db,"alerts"),{
+      title,message,
+      severity:$("severity").value,
+      targetStates:target.length?target:["ALL"],
+      createdBy:"Admin",
+      createdAt:serverTimestamp()
+    });
+    $("alertStatus").textContent="✓ Alert broadcast to connected clients.";
+    $("alertTitle").value=""; $("alertMessage").value="";
+  }catch(e){ $("alertStatus").textContent="Could not send alert. Check Firebase rules."; }
+};
+
 function initChecks(){$("stateChecks").innerHTML=STATES.map(s=>`<label><input type=checkbox value="${s.name}"> ${s.name}</label>`).join("")}
-function renderRescue(){const a=sos.filter(s=>String(s.status||"ACTIVE")==="ACTIVE");$("rescueGrid").innerHTML=a.map((s,i)=>`<div class="card rescue"><h3>Response Unit ${String(i+1).padStart(2,"0")}</h3><p>${esc(s.userName||"Mobile user")}</p><div class=unit>INCIDENT: SOS ACTIVE<br><br>LOCATION: ${s.latitude!=null?s.latitude.toFixed(5)+", "+s.longitude.toFixed(5):"GPS pending"}</div></div>`).join("")||"<div class='card rescue'>No active rescue operations.</div>"}
 async function makeMap(id){let m=L.map(id).setView([25.5,92.8],6);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"}).addTo(m);return m}
 async function initMap(id){
   if(maps[id]||document.getElementById(id)?.dataset.fallback) return;
@@ -77,4 +94,7 @@ async function initMap(id){
 }
 function updateColors(){for(const id in layers)for(const x of layers[id]){const s=snapshot?.states?.find(v=>v.name===x.name);x.layer.setStyle({fillColor:riskColor(s?.score||0)})}}
 window.syncWeather=async()=>{try{$("status").textContent="Fetching live weather…";const lat=STATES.map(s=>s.lat).join(","),lon=STATES.map(s=>s.lon).join(",");const u=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,precipitation,rain,wind_speed_10m&forecast_days=1`;const raw=await fetch(u).then(r=>r.json()),arr=Array.isArray(raw)?raw:[raw];const states=STATES.map((s,i)=>{const c=arr[i]?.current||{},rain=Number(c.rain??c.precipitation??0),humidity=Number(c.relative_humidity_2m??70),score=Math.max(0,Math.min(99,Math.round(rain*3+humidity*.10+s.terrain*27+s.exposure*17)));return{name:s.name,capital:s.capital,latitude:s.lat,longitude:s.lon,temperature:c.temperature_2m??null,humidity,rain,wind:c.wind_speed_10m??0,score,level:level(score)}});const avg=Math.round(states.reduce((a,s)=>a+s.score,0)/states.length);await set(ref(db,"state"),{version:"1.0",source:"Open-Meteo",updatedAt:Date.now(),regional:{score:avg,level:level(avg)},states});$("status").textContent="Shared state updated";}catch(e){$("status").textContent="Weather sync failed; retaining last state"}};
-initChecks();setInterval(()=>{$("clock").textContent=new Date().toLocaleString()},1000);setTimeout(()=>initMap("dashMap"),300);setTimeout(()=>{if(!snapshot)syncWeather()},1200);setInterval(syncWeather,15*60*1000);
+initChecks();setInterval(()=>{$("clock").textContent=new Date().toLocaleString()},1000);setTimeout(()=>initMap("dashMap"),500);
+window.openHorizonMainMap=()=>{initMap("mainMap").then(()=>maps.mainMap?.invalidateSize()).catch(()=>{});};
+setTimeout(()=>{if(!snapshot)syncWeather()},1200);
+setInterval(syncWeather,15*60*1000);

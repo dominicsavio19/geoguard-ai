@@ -5,3 +5,6 @@
 .neoutline:before,.neoutline:after{content:"";position:absolute;border:1px solid #284963;border-radius:50%;opacity:.7}
 .neoutline:before{inset:12% 25% 15% 18%}.neoutline:after{inset:25% 10% 22% 35%}
 .mapstates{position:absolute;inset:0}.mapdot{position:absolute;transform:translate(-50%,-50%);font-size:7px;white-space:nowrap}.mapdot span{display:block;width:9px;height:9px;border-radius:50%;background:#e6c84f;border:2px solid #fff8;margin:auto;box-shadow:0 0 14px #e6c84f77}.mapdot b{font-size:7px;color:#c5d7e8;text-shadow:0 1px 3px #000}
+
+/* v4: deterministic page visibility */
+.page[hidden]{display:none !important}.page:not([hidden]){display:block !important}
