@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Horizon NER Client</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+<div class="app">
+<header><div><b>HORIZON</b><small>NER SAFETY NETWORK</small></div><span>● LIVE</span></header>
+<main>
+<section id="home" class="page active">
+<div class="topline"><div><small>MONITORED REGION</small><b>North-Eastern India</b></div><small id="updated">WAITING…</small></div>
+<div class="risk"><div><small>REGIONAL RISK</small><h1 id="regionalLevel">--</h1><p id="regionalScore">Waiting for shared reading</p></div><div class="shield">◉</div></div>
+<div class="readings"><div><b id="temp">--</b><small>Temperature</small></div><div><b id="rain">--</b><small>Rainfall</small></div><div><b id="humidity">--</b><small>Humidity</small></div></div>
+<button class="sos" onclick="sendSOS()">🆘 <span><b>SOS EMERGENCY</b><small>Send your location to the control room</small></span></button>
+<div class="section"><b>Regional Risk Map</b><button onclick="openPage('map')">OPEN</button></div>
+<div class="card"><div id="homeMap"></div></div>
+<div class="section"><b>Live Alerts</b><button onclick="openPage('alerts')">VIEW ALL</button></div><div id="homeAlerts"></div>
+<div class="section"><b>Community Reports</b><button onclick="openPage('reports')">VIEW ALL</button></div><div id="homeReports"></div>
+</section>
+
+<section id="map" class="page"><button class="back" onclick="openPage('home')">← Back</button><h2>Risk Map</h2><p>Same Firebase state snapshot as Admin.</p><div class="card"><div id="mainMap"></div></div><div id="stateList"></div></section>
+
+<section id="report" class="page"><button class="back" onclick="openPage('home')">← Back</button><h2>Report Hazard</h2>
+<label>Hazard type</label><select id="hazard"><option>Landslide</option><option>Rockfall</option><option>Road blocked</option><option>Flooding</option><option>Other</option></select>
+<label>State</label><select id="stateSelect"></select><label>City / district</label><input id="city" placeholder="e.g. Shillong">
+<label>Description</label><textarea id="description" placeholder="Describe what you observed…"></textarea>
+<button class="primary" onclick="submitReport()">Submit Report</button><p id="reportMsg"></p></section>
+
+<section id="alerts" class="page"><button class="back" onclick="openPage('home')">← Back</button><h2>Live Alerts</h2><div id="allAlerts"></div></section>
+<section id="reports" class="page"><button class="back" onclick="openPage('home')">← Back</button><h2>Community Reports</h2><div id="allReports"></div></section>
+</main>
+<nav><button onclick="openPage('home')">⌂<small>Home</small></button><button onclick="openPage('map')">◈<small>Map</small></button><button class="sosnav" onclick="sendSOS()">🆘</button><button onclick="openPage('alerts')">🔔<small>Alerts</small></button><button onclick="openPage('report')">⚠<small>Report</small></button></nav>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module" src="app.js"></script>
+</body></html>
