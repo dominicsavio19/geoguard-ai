@@ -1,3 +1,4 @@
+const targetList=v=>Array.isArray(v)?v:(v==null||v===""?["ALL"]:[String(v)]);
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
 import {getDatabase,ref,onValue,onChildAdded,get,push,update,serverTimestamp,set} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
 import {firebaseConfig} from "../firebase-config.js";

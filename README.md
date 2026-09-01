@@ -72,3 +72,7 @@ Admin Broadcast now writes directly to `/alerts` using Firebase `push()`. Both A
 
 ## v7 Broadcast reliability
 Alerts now use both the Firebase Realtime Database value listener and `onChildAdded` stream. Admin verifies each broadcast by reading the just-created Firebase child back before reporting success. This makes a false "sent" state much less likely and gives the UI a visible alert-stream status.
+
+
+## v8 Client alert list fix
+Historical alerts may contain `targetStates` as a string while newer alerts use an array. The client renderer now normalizes both forms, preventing the Live Alerts page from crashing after a realtime popup arrives.
