@@ -42,3 +42,6 @@ For autonomous 24/7 updates later, add a secure scheduled backend.
 
 ## Security
 Never upload Firebase Admin SDK service-account private keys. The web configuration is client-side configuration; database rules/authentication provide access control.
+
+## v2 navigation repair
+The Admin navigation is now handled outside the Firebase module, so Overview/Risk Map/Reports/SOS/Broadcast/Rescue tabs remain clickable even if a Firebase or network module has a temporary error. Firebase errors are shown in the status area.
