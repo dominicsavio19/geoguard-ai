@@ -4,3 +4,5 @@
 .alert-toast b{display:block;color:#75baff;font-size:8px;letter-spacing:1px;margin-bottom:4px}
 .alert-toast strong{display:block;font-size:11px;margin-bottom:4px}
 .alert-toast span{display:block;color:#b5c7d8;font-size:8px;line-height:1.45}
+
+.alert-history-card{display:block!important;visibility:visible!important;opacity:1!important}#allAlerts{display:flex;flex-direction:column;gap:10px}

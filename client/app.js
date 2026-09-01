@@ -125,28 +125,26 @@ function renderReports() {
 }
 
 /* ---------- ALERTS ---------- */
-function renderAlerts() {
-  const cards = alerts.map(a => `
-    <div class="item" data-alert-id="${esc(a.id)}">
-      <span class="pill">${esc(a.severity || "INFO")}</span>
-      <b>🚨 ${esc(a.title || "Alert")}</b>
-      <p>${esc(a.message || "")}</p>
-      <small>${esc(targetList(a.targetStates).join(", "))} · ${tm(a.createdAt)}</small>
-    </div>
-  `).join("") || `<div class="item">No alerts yet.</div>`;
-
-  const home = alerts.slice(0, 4).map(a => `
-    <div class="item">
-      <span class="pill">${esc(a.severity || "INFO")}</span>
-      <b>🚨 ${esc(a.title || "Alert")}</b>
-      <small>${esc(a.message || "")}</small>
-    </div>
-  `).join("") || `<div class="item">No alerts yet.</div>`;
-
-  if ($("allAlerts")) $("allAlerts").innerHTML = cards;
-  if ($("homeAlerts")) $("homeAlerts").innerHTML = home;
+function alertCard(a){
+  return `<div class="item alert-history-card" data-alert-id="${esc(a.id)}">
+    <span class="pill">${esc(a.severity||"INFO")}</span>
+    <b>🚨 ${esc(a.title||"Alert")}</b>
+    <p>${esc(a.message||"")}</p>
+    <small>${esc(targetList(a.targetStates).join(", "))} · ${tm(a.createdAt)}</small>
+  </div>`;
 }
-
+function renderAlerts(){
+  const history=alerts.map(alertCard).join("");
+  const home=alerts.slice(0,4).map(a=>`
+    <div class="item alert-history-card" data-alert-id="${esc(a.id)}">
+      <span class="pill">${esc(a.severity||"INFO")}</span>
+      <b>🚨 ${esc(a.title||"Alert")}</b>
+      <small>${esc(a.message||"")}</small>
+    </div>`).join("");
+  const list=$("allAlerts"), homeList=$("homeAlerts");
+  if(list) list.innerHTML=history || `<div class="item">No alerts yet.</div>`;
+  if(homeList) homeList.innerHTML=home || `<div class="item">No alerts yet.</div>`;
+}
 function showClientAlert(a) {
   let box = $("alertToast");
   if (!box) {
@@ -295,38 +293,36 @@ onValue(ref(db, "reports"), snap => {
   renderReports();
 });
 
-onValue(ref(db, "alerts"), snap => {
-  const remote = [];
-  snap.forEach(x => remote.push({id:x.key, ...(x.val() || {})}));
-  remote.sort((a,b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
 
-  // Firebase is authoritative. Merge cached records only when a temporary
-  // read returns no children, so the client never loses visible history.
+function mergeAlert(a){
+  if(!a || !a.id) return;
+  const idx=alerts.findIndex(x=>x.id===a.id);
+  if(idx>=0) alerts[idx]={...alerts[idx],...a};
+  else alerts.push(a);
+  alerts.sort((x,y)=>Number(y.createdAt||0)-Number(x.createdAt||0));
+  cacheAlerts();
+  renderAlerts();
+}
+onValue(ref(db, "alerts"), snap => {
+  const remote=[];
+  snap.forEach(x=>remote.push({id:x.key,...(x.val()||{})}));
+  remote.sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0));
   if(remote.length){
-    alerts = remote;
-    firebaseAlertsLoaded = true;
+    alerts=remote;
+    firebaseAlertsLoaded=true;
     cacheAlerts();
-  }else if(!firebaseAlertsLoaded){
-    loadCachedAlerts();
   }
   renderAlerts();
 }, err => {
-  console.error("alerts", err);
-  loadCachedAlerts();
+  console.error("alerts read",err);
   renderAlerts();
 });
-
 onChildAdded(ref(db, "alerts"), snap => {
-  const a = {id:snap.key, ...(snap.val() || {})};
-  if (!alerts.some(x => x.id === a.id)) {
-    alerts.push(a);
-    alerts.sort((x,y) => Number(y.createdAt || 0) - Number(x.createdAt || 0));
-    cacheAlerts();
-    renderAlerts();
-    if(firebaseAlertsLoaded || document.visibilityState !== "hidden") showClientAlert(a);
-  }
+  const a={id:snap.key,...(snap.val()||{})};
+  const wasKnown=alerts.some(x=>x.id===a.id);
+  mergeAlert(a);
+  if(firebaseAlertsLoaded && !wasKnown) showClientAlert(a);
 });
-
 onValue(ref(db, "dispatches"), snap => {
   dispatches = [];
   snap.forEach(x => dispatches.push({id:x.key, ...(x.val() || {})}));
@@ -337,6 +333,7 @@ onValue(ref(db, "dispatches"), snap => {
 /* ---------- FORM / STARTUP ---------- */
 $("stateSelect").innerHTML = STATES.map(s => `<option>${esc(s.name)}</option>`).join("");
 
+loadCachedAlerts();
 loadCachedAlerts();
 renderState();
 renderReports();
