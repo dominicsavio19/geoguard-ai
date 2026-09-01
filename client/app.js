@@ -145,7 +145,25 @@ function renderAlerts(){
   if(list) list.innerHTML=history || `<div class="item">No alerts yet.</div>`;
   if(homeList) homeList.innerHTML=home || `<div class="item">No alerts yet.</div>`;
 }
+function addAlertToVisibleHistory(a){
+  const cardHtml=`<div class="item alert-history-card" data-alert-id="${esc(a.id)}">
+    <span class="pill">${esc(a.severity||"INFO")}</span>
+    <b>🚨 ${esc(a.title||"Alert")}</b>
+    <p>${esc(a.message||"")}</p>
+    <small>${esc(targetList(a.targetStates).join(", "))} · ${tm(a.createdAt)}</small>
+  </div>`;
+  const list=$("allAlerts");
+  if(list && !list.querySelector(`[data-alert-id="${CSS.escape(String(a.id))}"]`)){
+    list.insertAdjacentHTML("afterbegin",cardHtml);
+  }
+  const home=$("homeAlerts");
+  if(home && !home.querySelector(`[data-alert-id="${CSS.escape(String(a.id))}"]`)){
+    home.insertAdjacentHTML("afterbegin",cardHtml);
+    while(home.children.length>4) home.lastElementChild.remove();
+  }
+}
 function showClientAlert(a) {
+  addAlertToVisibleHistory(a);
   let box = $("alertToast");
   if (!box) {
     box = document.createElement("div");
@@ -308,6 +326,7 @@ function mergeAlert(a){
   if(!a || !a.id) return;
   alertStore.set(a.id, a);
   syncAlertArray();
+  addAlertToVisibleHistory(a);
 }
 
 onChildAdded(ref(db, "alerts"), snap => {
