@@ -76,3 +76,7 @@ Alerts now use both the Firebase Realtime Database value listener and `onChildAd
 
 ## v8 Client alert list fix
 Historical alerts may contain `targetStates` as a string while newer alerts use an array. The client renderer now normalizes both forms, preventing the Live Alerts page from crashing after a realtime popup arrives.
+
+
+## v9 Client alert history
+The Live Alerts page now explicitly re-renders whenever opened, and the realtime alert listener updates the same alert state used by the persistent history and popup.
