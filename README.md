@@ -68,3 +68,7 @@ This is a software prototype; unit GPS/routing and actual emergency-service inte
 
 ## v6 Broadcast fix
 Admin Broadcast now writes directly to `/alerts` using Firebase `push()`. Both Admin and Client listen to the same `/alerts` path. New alerts trigger an in-app toast immediately on connected pages, while the alert history is also retained.
+
+
+## v7 Broadcast reliability
+Alerts now use both the Firebase Realtime Database value listener and `onChildAdded` stream. Admin verifies each broadcast by reading the just-created Firebase child back before reporting success. This makes a false "sent" state much less likely and gives the UI a visible alert-stream status.

@@ -1,5 +1,5 @@
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-import {getDatabase,ref,onValue,push,serverTimestamp} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+import {getDatabase,ref,onValue,onChildAdded} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
 import {firebaseConfig} from "../firebase-config.js";
 import {STATES,riskColor} from "../shared/states.js";
 const app=initializeApp(firebaseConfig),db=getDatabase(app);let snapshot=null,reports=[],alerts=[],maps={},layers={},alertsReady=false,lastAlertKeys=new Set();
@@ -9,16 +9,24 @@ onValue(ref(db,"state"),s=>{snapshot=s.val();renderState();});
 onValue(ref(db,"reports"),s=>{reports=[];s.forEach(x=>reports.push({id:x.key,...x.val()}));reports.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));renderReports();});
 onValue(ref(db,"alerts"),s=>{
   const next=[];
-  s.forEach(x=>next.push({id:x.key,...x.val()}));
+  s.forEach(x=>next.push({id:x.key,...(x.val()||{})}));
   next.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-  if(alertsReady){
-    const fresh=next.filter(a=>!lastAlertKeys.has(a.id));
-    fresh.slice(0,1).forEach(showClientAlert);
-  }
   alerts=next;
   lastAlertKeys=new Set(next.map(a=>a.id));
   alertsReady=true;
   renderAlerts();
+},e=>console.error("Client alerts read error",e));
+
+onChildAdded(ref(db,"alerts"),snap=>{
+  const a={id:snap.key,...(snap.val()||{})};
+  const exists=alerts.some(x=>x.id===a.id);
+  if(!exists){
+    alerts.unshift(a);
+    alerts.sort((x,y)=>(y.createdAt||0)-(x.createdAt||0));
+    renderAlerts();
+    if(alertsReady) showClientAlert(a);
+  }
+  lastAlertKeys.add(a.id);
 });
 
 function showClientAlert(a){

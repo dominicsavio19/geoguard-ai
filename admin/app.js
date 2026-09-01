@@ -1,5 +1,5 @@
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-import {getDatabase,ref,onValue,push,update,serverTimestamp,set} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+import {getDatabase,ref,onValue,onChildAdded,get,push,update,serverTimestamp,set} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
 import {firebaseConfig} from "../firebase-config.js";
 import {STATES,riskColor,level} from "../shared/states.js";
 const app=initializeApp(firebaseConfig),db=getDatabase(app);let snapshot=null,reports=[],sos=[],alerts=[],maps={},layers={},lastAlertKeys=new Set(),alertsReady=false;
@@ -13,15 +13,25 @@ onValue(ref(db,"alerts"),s=>{
   const next=[];
   s.forEach(x=>next.push({id:x.key,...x.val()}));
   next.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-  if(alertsReady){
-    const fresh=next.filter(a=>!lastAlertKeys.has(a.id));
-    fresh.slice(0,3).forEach(showAdminAlert);
-  }
   alerts=next;
   lastAlertKeys=new Set(next.map(a=>a.id));
   alertsReady=true;
   renderAll();
-},e=>{$("status").textContent="Alerts read error";});
+  const d=$("alertDebug"); if(d) d.textContent=`Realtime alert stream: connected · ${alerts.length} stored alert(s)`;
+},e=>{const d=$("alertDebug");if(d)d.textContent="Realtime alert stream: ERROR";$("status").textContent="Firebase alerts read error";});
+
+onChildAdded(ref(db,"alerts"),snap=>{
+  const a={id:snap.key,...(snap.val()||{})};
+  const exists=alerts.some(x=>x.id===a.id);
+  if(!exists){
+    alerts.unshift(a);
+    alerts.sort((x,y)=>(y.createdAt||0)-(x.createdAt||0));
+    renderAll();
+    if(alertsReady){ showAdminAlert(a); const d=$("alertDebug"); if(d)d.textContent=`Realtime alert stream: received new alert · ${a.id}`; }
+  }
+  lastAlertKeys.add(a.id);
+},e=>{$("status").textContent="Firebase alert stream error";});
+
 let dispatches=[];
 onValue(ref(db,"dispatches"),s=>{
   dispatches=[]; s.forEach(x=>dispatches.push({id:x.key,...x.val()}));
@@ -97,10 +107,18 @@ window.sendAlert=async()=>{
   try{
     $("alertStatus").textContent="Sending…";
     const result=await push(ref(db,"alerts"),payload);
+    const verify=await get(ref(db,"alerts/"+result.key));
+    if(!verify.exists()) throw new Error("Firebase accepted the write but readback failed.");
+    const saved={id:result.key,...(verify.val()||{})};
+    if(!alerts.some(x=>x.id===saved.id)){
+      alerts.unshift(saved);
+      alerts.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+      renderAll();
+    }
     $("alertTitle").value="";
     $("alertMessage").value="";
     document.querySelectorAll("#stateChecks input").forEach(x=>x.checked=false);
-    $("alertStatus").textContent="✓ Alert sent · ID "+result.key.slice(-6);
+    $("alertStatus").textContent="✓ Alert stored in Firebase · ID "+result.key.slice(-6);
   }catch(err){
     console.error("Broadcast failed:",err);
     $("alertStatus").textContent="✕ Broadcast failed: "+(err?.message||"Firebase write error");
