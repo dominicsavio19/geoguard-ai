@@ -26,6 +26,18 @@ let alerts = [];
 let dispatches = [];
 let maps = {};
 let layers = {};
+let firebaseAlertsLoaded = false;
+const ALERT_CACHE_KEY = "horizon_alert_history_v11";
+
+function loadCachedAlerts(){
+  try{
+    const cached=JSON.parse(localStorage.getItem(ALERT_CACHE_KEY)||"[]");
+    if(Array.isArray(cached)) alerts=cached;
+  }catch(_){}
+}
+function cacheAlerts(){
+  try{ localStorage.setItem(ALERT_CACHE_KEY, JSON.stringify(alerts.slice(0,100))); }catch(_){}
+}
 
 function setLive(text) {
   const el = $("updated");
@@ -284,9 +296,23 @@ onValue(ref(db, "reports"), snap => {
 });
 
 onValue(ref(db, "alerts"), snap => {
-  alerts = [];
-  snap.forEach(x => alerts.push({id:x.key, ...(x.val() || {})}));
-  alerts.sort((a,b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
+  const remote = [];
+  snap.forEach(x => remote.push({id:x.key, ...(x.val() || {})}));
+  remote.sort((a,b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
+
+  // Firebase is authoritative. Merge cached records only when a temporary
+  // read returns no children, so the client never loses visible history.
+  if(remote.length){
+    alerts = remote;
+    firebaseAlertsLoaded = true;
+    cacheAlerts();
+  }else if(!firebaseAlertsLoaded){
+    loadCachedAlerts();
+  }
+  renderAlerts();
+}, err => {
+  console.error("alerts", err);
+  loadCachedAlerts();
   renderAlerts();
 });
 
@@ -295,8 +321,9 @@ onChildAdded(ref(db, "alerts"), snap => {
   if (!alerts.some(x => x.id === a.id)) {
     alerts.push(a);
     alerts.sort((x,y) => Number(y.createdAt || 0) - Number(x.createdAt || 0));
+    cacheAlerts();
     renderAlerts();
-    showClientAlert(a);
+    if(firebaseAlertsLoaded || document.visibilityState !== "hidden") showClientAlert(a);
   }
 });
 
@@ -310,6 +337,7 @@ onValue(ref(db, "dispatches"), snap => {
 /* ---------- FORM / STARTUP ---------- */
 $("stateSelect").innerHTML = STATES.map(s => `<option>${esc(s.name)}</option>`).join("");
 
+loadCachedAlerts();
 renderState();
 renderReports();
 renderAlerts();
