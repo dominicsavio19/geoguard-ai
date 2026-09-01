@@ -295,31 +295,47 @@ window.submitReport = async () => {
 /* ---------- MAP ---------- */
 function makeMap(id) {
   if (!window.L || !$(id) || maps[id]) return;
-  maps[id] = L.map(id).setView([25.5, 92.8], 6);
+  maps[id] = L.map(id, {preferCanvas:true}).setView([25.5,92.8],6);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 18,
-    attribution: "© OpenStreetMap"
+    maxZoom:12, attribution:"© OpenStreetMap"
   }).addTo(maps[id]);
+  layers[id]=[];
+  const map=maps[id];
 
-  layers[id] = [];
-  STATES.forEach(st => {
-    const marker = L.circleMarker([st.lat, st.lon], {
-      radius: 9, fillColor: riskColor(0), color: "#fff",
-      weight: 2, fillOpacity: .85
-    }).addTo(maps[id]);
-    marker.bindTooltip(st.name);
-    layers[id].push({layer:marker, name:st.name});
+  fetch("https://raw.githubusercontent.com/AbhinavSwami28/india-official-geojson/refs/heads/main/india-states-simplified.geojson").then(r=>{
+    if(!r.ok) throw new Error("Boundary data unavailable");
+    return r.json();
+  }).then(data=>{
+    const features=data.features.filter(f=>["Arunachal Pradesh", "Assam", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Sikkim", "Tripura"].includes(f.properties?.NAME_1));
+    const geo=L.geoJSON(features,{
+      style:feature=>{
+        const state=snapshot?.states?.find(x=>x.name===feature.properties?.NAME_1);
+        return {color:"#ffffff",weight:1.5,opacity:.9,
+          fillColor:riskColor(Number(state?.score||0)),fillOpacity:.72};
+      },
+      onEachFeature:(feature,layer)=>{
+        const name=feature.properties?.NAME_1||"North-East State";
+        layer.bindTooltip(name,{sticky:true});
+        layer.on({
+          mouseover:e=>e.target.setStyle({weight:2.5,fillOpacity:.86}),
+          mouseout:e=>geo.resetStyle(e.target),
+          click:()=>layer.bindPopup(`<b>${esc(name)}</b>`).openPopup()
+        });
+        layers[id].push({layer,name});
+      }
+    }).addTo(map);
+    map.fitBounds(geo.getBounds(),{padding:[12,12]});
+    updateMapColors();
+  }).catch(err=>{
+    console.error("Boundary map:",err);
+    $(id).innerHTML=`<div style="padding:30px;text-align:center;color:#71849a">State boundary map unavailable. Please refresh.</div>`;
   });
-  updateMapColors();
 }
-
-function updateMapColors() {
-  Object.keys(layers).forEach(id => {
-    layers[id].forEach(x => {
-      const state = snapshot?.states?.find(s => s.name === x.name);
-      x.layer.setStyle({fillColor: riskColor(Number(state?.score || 0))});
-    });
-  });
+function updateMapColors(){
+  Object.keys(layers).forEach(id=>layers[id].forEach(x=>{
+    const state=snapshot?.states?.find(v=>v.name===x.name);
+    x.layer.setStyle({fillColor:riskColor(Number(state?.score||0))});
+  }));
 }
 
 function initMap(id) {

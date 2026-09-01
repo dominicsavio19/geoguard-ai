@@ -242,7 +242,41 @@ window.openIncidentMap=(lat,lon)=>{
 };
 
 function initChecks(){$("stateChecks").innerHTML=STATES.map(s=>`<label><input type=checkbox value="${s.name}"> ${s.name}</label>`).join("")}
-async function makeMap(id){let m=L.map(id).setView([25.5,92.8],6);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"}).addTo(m);return m}
+async function makeMap(id){
+  const m=L.map(id).setView([25.5,92.8],6);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {maxZoom:12,attribution:"© OpenStreetMap"}).addTo(m);
+  layers[id]=[];
+  try{
+    const res=await fetch("https://raw.githubusercontent.com/AbhinavSwami28/india-official-geojson/refs/heads/main/india-states-simplified.geojson");
+    if(!res.ok) throw new Error("Boundary data unavailable");
+    const data=await res.json();
+    const features=data.features.filter(f=>["Arunachal Pradesh", "Assam", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Sikkim", "Tripura"].includes(f.properties?.NAME_1));
+    const geo=L.geoJSON(features,{
+      style:feature=>{
+        const state=snapshot?.states?.find(x=>x.name===feature.properties?.NAME_1);
+        return {color:"#ffffff",weight:1.5,opacity:.9,
+          fillColor:riskColor(Number(state?.score||0)),fillOpacity:.72};
+      },
+      onEachFeature:(feature,layer)=>{
+        const name=feature.properties?.NAME_1||"North-East State";
+        layer.bindTooltip(name,{sticky:true});
+        layer.on({
+          mouseover:e=>e.target.setStyle({weight:2.5,fillOpacity:.86}),
+          mouseout:e=>geo.resetStyle(e.target),
+          click:()=>layer.bindPopup(`<b>${esc(name)}</b>`).openPopup()
+        });
+        layers[id].push({layer,name});
+      }
+    }).addTo(m);
+    m.fitBounds(geo.getBounds(),{padding:[12,12]});
+  }catch(e){
+    console.error("Boundary map:",e);
+    const el=document.getElementById(id);
+    if(el) el.insertAdjacentHTML("afterbegin",`<div class="mapfallback">State boundary map unavailable. Refresh to retry.</div>`);
+  }
+  return m;
+}
 async function initMap(id){
   if(maps[id]||document.getElementById(id)?.dataset.fallback) return;
   if(!window.L){
@@ -254,10 +288,15 @@ async function initMap(id){
     return;
   }
   maps[id]=await makeMap(id);
-  for(const st of STATES){const c=L.circleMarker([st.lat,st.lon],{radius:10,fillColor:"#1769ff",color:"#fff",weight:2,fillOpacity:.8}).addTo(maps[id]);c.bindTooltip(st.name);(layers[id]??=[]).push({layer:c,name:st.name})}
   updateColors();
 }
-function updateColors(){for(const id in layers)for(const x of layers[id]){const s=snapshot?.states?.find(v=>v.name===x.name);x.layer.setStyle({fillColor:riskColor(s?.score||0)})}}
+function updateColors(){
+  for(const id in layers) for(const x of layers[id]){
+    const state=snapshot?.states?.find(v=>v.name===x.name);
+    x.layer.setStyle({fillColor:riskColor(Number(state?.score||0))});
+  }
+}
+
 window.syncWeather=async()=>{try{$("status").textContent="Fetching live weather…";const lat=STATES.map(s=>s.lat).join(","),lon=STATES.map(s=>s.lon).join(",");const u=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,precipitation,rain,wind_speed_10m&forecast_days=1`;const raw=await fetch(u).then(r=>r.json()),arr=Array.isArray(raw)?raw:[raw];const states=STATES.map((s,i)=>{const c=arr[i]?.current||{},rain=Number(c.rain??c.precipitation??0),humidity=Number(c.relative_humidity_2m??70),score=Math.max(0,Math.min(99,Math.round(rain*3+humidity*.10+s.terrain*27+s.exposure*17)));return{name:s.name,capital:s.capital,latitude:s.lat,longitude:s.lon,temperature:c.temperature_2m??null,humidity,rain,wind:c.wind_speed_10m??0,score,level:level(score)}});const avg=Math.round(states.reduce((a,s)=>a+s.score,0)/states.length);await set(ref(db,"state"),{version:"1.0",source:"Open-Meteo",updatedAt:Date.now(),regional:{score:avg,level:level(avg)},states});$("status").textContent="Shared state updated";}catch(e){$("status").textContent="Weather sync failed; retaining last state"}};
 initChecks();setInterval(()=>{$("clock").textContent=new Date().toLocaleString()},1000);setTimeout(()=>initMap("dashMap"),500);
 window.openHorizonMainMap=()=>{initMap("mainMap").then(()=>maps.mainMap?.invalidateSize()).catch(()=>{});};

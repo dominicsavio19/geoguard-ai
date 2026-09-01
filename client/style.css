@@ -17,3 +17,5 @@
 .emergency-status.dispatched b{color:#1769aa}
 .emergency-status.complete{border-color:#bfe5d0;background:#f5fff9}
 .emergency-status.complete b{color:#17824b}
+
+.leaflet-interactive{transition:fill-opacity .15s,stroke-width .15s}

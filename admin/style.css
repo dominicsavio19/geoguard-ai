@@ -34,3 +34,5 @@
 .admin-toast b{display:block;color:#74b8ff;font-size:8px;letter-spacing:1.3px;margin-bottom:6px}
 .admin-toast strong{display:block;font-size:11px;margin-bottom:4px}
 .admin-toast span{display:block;color:#9eb2c7;font-size:8px;line-height:1.45}
+
+.leaflet-interactive{transition:fill-opacity .15s,stroke-width .15s}
