@@ -19,11 +19,16 @@ const tm = v => {
     .toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
 };
 const targetList = v => Array.isArray(v) ? v : (v == null || v === "" ? ["ALL"] : [String(v)]);
+const CLIENT_ID_KEY = "horizon_client_id_v15";
+const clientId = localStorage.getItem(CLIENT_ID_KEY) ||
+  ((crypto?.randomUUID?.() || ("client-"+Date.now()+"-"+Math.random().toString(36).slice(2))));
+localStorage.setItem(CLIENT_ID_KEY, clientId);
 
 let snapshot = null;
 let reports = [];
 let alerts = [];
 let dispatches = [];
+let mySos = [];
 let maps = {};
 let layers = {};
 let firebaseAlertsLoaded = false;
@@ -198,6 +203,35 @@ function renderDispatches() {
   if ($("homeDispatches")) $("homeDispatches").innerHTML = html;
 }
 
+/* ---------- SOS + RESCUE STATUS ---------- */
+function renderEmergencyStatus(){
+  const box=$("sosStatus");
+  if(!box) return;
+
+  const latest=mySos
+    .slice()
+    .sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0))[0];
+
+  if(!latest){
+    box.innerHTML=`<div class="emergency-status waiting"><b>🆘 SOS READY</b><small>Press SOS to contact the regional control room.</small></div>`;
+    return;
+  }
+
+  const linked=dispatches
+    .filter(d=>d.sosId===latest.id)
+    .sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0))[0];
+
+  if(linked && linked.status==="COMPLETED"){
+    box.innerHTML=`<div class="emergency-status complete"><b>✓ RESCUE COMPLETED</b><small>${esc(linked.unitId||"Response unit")} completed the response.</small></div>`;
+  }else if(linked){
+    box.innerHTML=`<div class="emergency-status dispatched"><b>🚑 ${esc(linked.unitId||"RESCUE UNIT")} DISPATCHED</b><small>Status: ${esc(linked.status||"DISPATCHED")} · Control room has assigned a response team.</small></div>`;
+  }else if(String(latest.status||"ACTIVE").toUpperCase()==="RESOLVED"){
+    box.innerHTML=`<div class="emergency-status complete"><b>✓ SOS RESOLVED</b><small>The control room has closed this emergency.</small></div>`;
+  }else{
+    box.innerHTML=`<div class="emergency-status active"><b>🆘 SOS SENT</b><small>Control room received your request · waiting for rescue dispatch.</small></div>`;
+  }
+}
+
 /* ---------- SOS ---------- */
 window.sendSOS = async () => {
   if (!confirm("Send an emergency SOS to the regional control room?")) return;
@@ -214,6 +248,7 @@ window.sendSOS = async () => {
   try {
     const result = await push(ref(db, "sos"), {
       userName: "Mobile User",
+      clientId,
       state: "North-East India",
       latitude,
       longitude,
@@ -222,6 +257,7 @@ window.sendSOS = async () => {
       responseStatus: "WAITING",
       createdAt: serverTimestamp()
     });
+    renderEmergencyStatus();
     alert("🆘 SOS sent to the control room.");
   } catch (e) {
     console.error(e);
@@ -360,11 +396,22 @@ onValue(ref(db, "alerts"), snap => {
   renderAlerts();
 });
 
+onValue(ref(db, "sos"), snap => {
+  mySos=[];
+  snap.forEach(x=>{
+    const value=x.val()||{};
+    if(value.clientId===clientId) mySos.push({id:x.key,...value});
+  });
+  mySos.sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0));
+  renderEmergencyStatus();
+});
+
 onValue(ref(db, "dispatches"), snap => {
   dispatches = [];
   snap.forEach(x => dispatches.push({id:x.key, ...(x.val() || {})}));
   dispatches.sort((a,b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
   renderDispatches();
+  renderEmergencyStatus();
 });
 
 /* ---------- FORM / STARTUP ---------- */
@@ -376,6 +423,7 @@ renderState();
 renderReports();
 renderAlerts();
 renderDispatches();
+renderEmergencyStatus();
 
 setTimeout(() => initMap("homeMap"), 400);
 setTimeout(() => initMap("mainMap"), 700);
