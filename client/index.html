@@ -1,41 +1,149 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Horizon NER Client</title>
-<link rel="stylesheet" href="style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07131d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Landsafe AI — North Eastern Region</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-<div class="app">
-<header><div><b>HORIZON</b><small>NER SAFETY NETWORK</small></div><span>● LIVE</span></header>
-<main>
-<section id="home" class="page active">
-<div class="topline"><div><small>MONITORED REGION</small><b>North-Eastern India</b></div><small id="updated">WAITING…</small></div>
-<div class="risk"><div><small>REGIONAL RISK</small><h1 id="regionalLevel">--</h1><p id="regionalScore">Waiting for shared reading</p></div><div class="shield">◉</div></div>
-<div class="readings"><div><b id="temp">--</b><small>Temperature</small></div><div><b id="rain">--</b><small>Rainfall</small></div><div><b id="humidity">--</b><small>Humidity</small></div></div>
-<button class="sos" onclick="sendSOS()">🆘 <span><b>SOS EMERGENCY</b><small>Send your location to the control room</small></span></button>
-<div id="sosStatus"></div>
-<div class="section"><b>Regional Risk Map</b><button onclick="openPage('map')">OPEN</button></div>
-<div class="card"><div id="homeMap"></div></div>
-<div class="section"><b>Live Alerts</b><button onclick="openPage('alerts')">VIEW ALL</button></div><div id="homeAlerts"></div>
-<div class="section"><b>Rescue Updates</b></div><div id="homeDispatches"></div>
-<div class="section"><b>Community Reports</b><button onclick="openPage('reports')">VIEW ALL</button></div><div id="homeReports"></div>
-</section>
+<div class="app-shell">
+  <div class="mountain-bg"></div>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon"><span>G</span></div>
+      <div><strong>GeoGuard</strong><small>NORTH EASTERN REGION</small></div>
+    </div>
+    <button class="icon-btn" id="refreshBtn" aria-label="Refresh weather">↻</button>
+  </header>
 
-<section id="map" class="page"><button class="back" onclick="openPage('home')">← Back</button><h2>Risk Map</h2><p>Same Firebase state snapshot as Admin.</p><div class="card"><div id="mainMap"></div></div><div id="stateList"></div></section>
+  <main class="screens">
+    <!-- HOME -->
+    <section class="screen active" id="home">
+      <div class="home-top">
+        <div><span class="eyebrow"><i></i> LIVE REGIONAL MONITORING</span><h1>North Eastern<br><b>Risk Watch</b></h1></div>
+        <span class="updated" id="updated">Connecting…</span>
+      </div>
 
-<section id="report" class="page"><button class="back" onclick="openPage('home')">← Back</button><h2>Report Hazard</h2>
-<label>Hazard type</label><select id="hazard"><option>Landslide</option><option>Rockfall</option><option>Road blocked</option><option>Flooding</option><option>Other</option></select>
-<label>State</label><select id="stateSelect"></select><label>City / district</label><input id="city" placeholder="e.g. Shillong">
-<label>Description</label><textarea id="description" placeholder="Describe what you observed…"></textarea>
-<button class="primary" onclick="submitReport()">Submit Report</button><p id="reportMsg"></p></section>
+      <div class="glass-card regional-card">
+        <div class="risk-ring" id="riskRing"><strong id="avgRisk">--</strong><small>/100</small></div>
+        <div class="regional-copy"><span>REGIONAL RISK</span><b id="regionalLevel">Loading</b><small><strong id="highCount">0</strong> high-risk zones • 8 states monitored</small><div class="sensor-mini"><i></i><strong id="totalSensors">0</strong> sensors active</div></div>
+        <div class="chevron">›</div>
+      </div>
 
-<section id="alerts" class="page"><button class="back" onclick="openPage('home')">← Back</button><h2>Live Alerts</h2><div id="allAlerts"></div></section>
-<section id="reports" class="page"><button class="back" onclick="openPage('home')">← Back</button><h2>Community Reports</h2><div id="allReports"></div></section>
-</main>
-<nav><button onclick="openPage('home')">⌂<small>Home</small></button><button onclick="openPage('map')">◈<small>Map</small></button><button class="sosnav" onclick="sendSOS()">🆘</button><button onclick="openPage('alerts')">🔔<small>Alerts</small></button><button onclick="openPage('report')">⚠<small>Report</small></button></nav>
+      <div class="section-title"><div><span>NOW</span><b>Current conditions</b></div><button onclick="openScreen('mapScreen')">Map <span>›</span></button></div>
+
+      <div class="glass-card weather-card" id="featured">
+        <div class="weather-head">
+          <div><span id="featuredState">NER</span><h2 id="featuredCity">Loading…</h2><small id="featuredTime">Live weather</small></div>
+          <div class="weather-main"><span id="weatherIcon">☁</span><strong id="temp">--°</strong></div>
+        </div>
+        <div class="weather-grid">
+          <div><span>RAIN 24H</span><b id="rain24">--</b><small>mm</small></div>
+          <div><span>HUMIDITY</span><b id="humidity">--</b><small>%</small></div>
+          <div><span>WIND</span><b id="wind">--</b><small>km/h</small></div>
+        </div>
+        <div class="prediction-row">
+          <div><div><span>AI RISK FORECAST</span><b id="predictionText">--</b></div><small>Next 24–72 hours</small></div>
+          <div class="score-pill" id="predictionScore">--%</div>
+        </div>
+      </div>
+
+      <div class="section-title"><div><span>PRIORITY</span><b>Areas to watch</b></div><button onclick="openScreen('states')">All states <span>›</span></button></div>
+      <div class="priority-row" id="priorityRow"></div>
+
+      <button class="sos-home" onclick="startSOS()">
+        <span class="sos-symbol">SOS</span>
+        <div><strong>Emergency assistance</strong><small>Press only when you need immediate help</small></div>
+        <span class="arrow">›</span>
+      </button>
+    </section>
+
+    <!-- MAP -->
+    <section class="screen" id="mapScreen">
+      <div class="screen-head"><div><span>GIS INTELLIGENCE</span><h2>Regional risk map</h2><small class="map-subtitle">District-wise risk zones • each district is colour-coded</small></div><span class="live-badge"><i></i>LIVE</span></div>
+      <div class="map-wrap glass-card"><div id="map"></div><div class="map-key"><i class="low"></i>Low <i class="moderate"></i>Moderate <i class="high"></i>High <i class="critical"></i>Critical</div><button class="map-locate" onclick="locateOnMap()">⌖</button></div>
+      <div class="map-list" id="mapList"></div>
+    </section>
+
+    <!-- ALERTS -->
+    <section class="screen" id="alertsScreen">
+      <div class="screen-head"><div><span>EARLY WARNING</span><h2>Alerts</h2></div><span class="count-badge" id="alertCount">0</span></div>
+      <div class="glass-card alert-summary"><div class="alert-pulse">!</div><div><strong id="alertSummaryTitle">Monitoring all zones</strong><small id="alertSummarySub">Weather thresholds and community reports</small></div></div>
+      <div class="filter-row"><button class="filter active" data-filter="all">All</button><button class="filter" data-filter="risk">AI Risk</button><button class="filter" data-filter="community">Community</button></div>
+      <div id="alertList" class="alert-list"></div>
+    </section>
+
+    <!-- REPORT -->
+    <section class="screen" id="reportScreen">
+      <div class="screen-head"><div><span>COMMUNITY INTELLIGENCE</span><h2>Report a hazard</h2></div></div>
+      <div class="glass-card report-card">
+        <div class="report-note"><span>📡</span><div><strong>Help responders see what you see.</strong><small>Choose a hazard, add evidence and optionally attach your current location.</small></div></div>
+        <label class="input-label">INCIDENT TYPE</label>
+        <select id="reportType"><option value="">Select a hazard</option><option>Landslide</option><option>Heavy rain</option><option>Flood / flash flood</option><option>Ground crack</option><option>Slope movement</option><option>Rockfall</option><option>Road blockage</option><option>Bridge damage</option><option>Fallen tree</option><option>Infrastructure damage</option><option>Missing person</option><option>Injured person</option><option>Deceased person</option><option>Person trapped / stranded</option><option>Evacuation required</option><option>Lightning / storm</option><option>Water seepage</option><option>Other emergency</option></select>
+        <label class="input-label">WHAT DID YOU OBSERVE?</label>
+        <textarea id="reportDescription" placeholder="Briefly describe what happened…"></textarea>
+        <div class="capture-grid">
+          <label class="capture-btn"><input id="camera" type="file" accept="image/*" capture="environment"><span>📷</span><strong>Camera</strong><small>Take photo</small></label>
+          <label class="capture-btn"><input id="gallery" type="file" accept="image/*"><span>▣</span><strong>Gallery</strong><small>Choose photo</small></label>
+        </div>
+        <div class="photo-preview" id="photoPreview" hidden></div>
+        <div class="location-row"><div><span>⌖</span><div><label>REPORT LOCATION</label><strong id="reportLocation">Not attached</strong></div></div><button onclick="attachReportLocation()">Use GPS</button></div>
+        <button class="primary-btn" id="submitReport">Submit field report <span>›</span></button>
+        <small class="privacy-note">Location is requested only when you tap “Use GPS”.</small>
+      </div>
+    </section>
+
+    <!-- STATES -->
+    <section class="screen" id="statesScreen">
+      <div class="screen-head"><div><span>REGIONAL COVERAGE</span><h2>8 NER states</h2></div><span class="live-badge"><i></i>LIVE</span></div>
+      <div class="glass-card state-overview"><div><span>REGIONAL AVERAGE</span><strong id="stateAvg">--</strong><small>risk score / 100</small></div><div class="state-bars" id="stateBars"></div></div>
+      <div class="glass-card sensor-overview">
+        <div class="sensor-overview-icon">⌁</div>
+        <div><span>PHYSICAL SENSOR NETWORK</span><strong id="sensorTotalLarge">0 ACTIVE SENSORS</strong><small>No sensors have been planted yet • ready for future deployment</small></div>
+        <div class="sensor-status">NOT DEPLOYED</div>
+      </div>
+      <div class="states-grid" id="statesGrid"></div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav active" data-target="home"><span>⌂</span><b>Home</b></button>
+    <button class="nav" data-target="mapScreen"><span>◉</span><b>Map</b></button>
+    <button class="nav" data-target="alertsScreen"><span>⚠</span><b>Alerts</b><i id="navDot"></i></button>
+    <button class="nav" data-target="reportScreen"><span>＋</span><b>Report</b></button>
+    <button class="nav" data-target="statesScreen"><span>⌁</span><b>States</b></button>
+  </nav>
+
+  <!-- SOS: hidden until explicit press -->
+  <div class="sos-layer" id="sosLayer" hidden>
+    <div class="sos-screen">
+      <div class="sos-top"><button onclick="cancelSOS()" class="sos-close">×</button><span>EMERGENCY</span><div class="sos-live"><i></i>LIVE</div></div>
+      <div class="sos-title"><div class="sos-icon">SOS</div><span>Emergency location sharing</span><h1 id="sosHeading">Activate SOS?</h1><p id="sosMessage">Your live location will be shared with the control room and eligible nearby responders only after you confirm.</p></div>
+      <div class="sos-consent" id="sosConsent">
+        <div><span>📍</span><div><strong>Live location</strong><small>Starts only after confirmation</small></div></div>
+        <div><span>🕒</span><div><strong>Report time</strong><small id="sosReportTime">Not started</small></div></div>
+      </div>
+      <button class="sos-confirm" onclick="confirmSOS()">ACTIVATE SOS <span>→</span></button>
+      <small class="sos-footer">Use SOS only for an emergency. Location sharing ends when SOS is stopped.</small>
+      <div class="sos-active-panel" id="sosActivePanel" hidden>
+        <div class="gps-status"><i></i><div><strong id="sosStatus">Acquiring GPS…</strong><small id="sosTime">Report time —</small></div></div>
+        <div class="live-coords"><span>⌖</span><div><small>LIVE LOCATION</small><strong id="sosLocation">Waiting for GPS…</strong><em id="sosAccuracy">GPS accuracy —</em></div></div>
+        <div class="share-status"><div><small>CONTROL ROOM</small><strong>CONNECTED</strong></div><div><small>NEARBY OPT-IN USERS</small><strong>ELIGIBLE</strong></div></div>
+        <button class="stop-sos" onclick="stopSOS()">Stop SOS sharing</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script type="module" src="app.js?v=16"></script>
-</body></html>
+<script src="./app.js?v=17"></script>
+</body>
+</html>
