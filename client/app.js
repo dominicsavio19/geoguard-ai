@@ -2,12 +2,43 @@ import {initializeApp} from "https://www.gstatic.com/firebasejs/12.18.0/firebase
 import {getDatabase,ref,onValue,push,serverTimestamp} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
 import {firebaseConfig} from "../firebase-config.js";
 import {STATES,riskColor} from "../shared/states.js";
-const app=initializeApp(firebaseConfig),db=getDatabase(app);let snapshot=null,reports=[],alerts=[],maps={},layers={};
+const app=initializeApp(firebaseConfig),db=getDatabase(app);let snapshot=null,reports=[],alerts=[],maps={},layers={},alertsReady=false,lastAlertKeys=new Set();
 const $=id=>document.getElementById(id),esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c])),tm=v=>new Date(v||Date.now()).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
 window.openPage=id=>{document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(id).classList.add("active");if(id==="map")setTimeout(()=>maps.mainMap?.invalidateSize(),100)};
 onValue(ref(db,"state"),s=>{snapshot=s.val();renderState();});
 onValue(ref(db,"reports"),s=>{reports=[];s.forEach(x=>reports.push({id:x.key,...x.val()}));reports.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));renderReports();});
-onValue(ref(db,"alerts"),s=>{alerts=[];s.forEach(x=>alerts.push({id:x.key,...x.val()}));alerts.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));renderAlerts();});
+onValue(ref(db,"alerts"),s=>{
+  const next=[];
+  s.forEach(x=>next.push({id:x.key,...x.val()}));
+  next.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  if(alertsReady){
+    const fresh=next.filter(a=>!lastAlertKeys.has(a.id));
+    fresh.slice(0,1).forEach(showClientAlert);
+  }
+  alerts=next;
+  lastAlertKeys=new Set(next.map(a=>a.id));
+  alertsReady=true;
+  renderAlerts();
+});
+
+function showClientAlert(a){
+  let box=document.getElementById("alertToast");
+  if(!box){
+    box=document.createElement("div");
+    box.id="alertToast";
+    box.className="alert-toast";
+    document.body.appendChild(box);
+  }
+  box.innerHTML=`<b>🚨 ${esc(a.severity||"ALERT")} WARNING</b><strong>${esc(a.title||"New Alert")}</strong><span>${esc(a.message||"")}</span>`;
+  box.onclick=()=>{box.classList.remove("show");openPage("alerts");};
+  box.classList.add("show");
+  clearTimeout(window.__clientAlertTimer);
+  window.__clientAlertTimer=setTimeout(()=>box.classList.remove("show"),8000);
+}
+
+onValue(ref(db,"dispatches"),s=>{const ds=[];s.forEach(x=>ds.push({id:x.key,...x.val()}));ds.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));renderDispatches(ds);});
+function renderDispatches(ds){$("homeDispatches").innerHTML=ds.filter(d=>d.status!=="COMPLETED").slice(0,3).map(d=>`<div class="item"><span class="pill">${esc(d.status||"DISPATCHED")}</span><b>🚑 ${esc(d.unitId||"Rescue Unit")}</b><small>Response team assigned · ${tm(d.createdAt)}</small></div>`).join("")||"<div class=item>No rescue dispatch updates.</div>";}
+
 function renderState(){if(!snapshot?.states)return;const r=snapshot.regional,m=snapshot.states[0];$("regionalLevel").textContent=r.level;$("regionalScore").textContent=`${r.score}/100 · shared Firebase reading`;$("updated").textContent=`SYNCED ${tm(snapshot.updatedAt)}`;$("temp").textContent=m.temperature==null?"--":Number(m.temperature).toFixed(1)+"°C";$("rain").textContent=Number(m.rain||0).toFixed(1)+" mm";$("humidity").textContent=Number(m.humidity||0)+"%";$("stateList").innerHTML=snapshot.states.map(s=>`<div class="state"><div><b>${esc(s.name)}</b><small>${esc(s.capital)} · ${Number(s.temperature||0).toFixed(1)}°C · Rain ${Number(s.rain||0).toFixed(1)} mm</small></div><b style="color:${riskColor(s.score)}">${s.level} ${s.score}</b></div>`).join("");updateColors()}
 function renderReports(){let h=reports.slice(0,4).map(r=>`<div class="item"><span class="pill">${esc(r.status||"UNVERIFIED")}</span><b>⚠ ${esc(r.category)}</b><small>📍 ${esc(r.city||r.state)} · ${tm(r.createdAt)}</small></div>`).join("")||"<div class=item>No reports.</div>";$("homeReports").innerHTML=h;$("allReports").innerHTML=reports.map(r=>`<div class="item"><span class="pill">${esc(r.status||"UNVERIFIED")}</span><b>⚠ ${esc(r.category)}</b><p>${esc(r.description)}</p><small>📍 ${esc(r.city||r.state)} · ${tm(r.createdAt)}</small></div>`).join("")}
 function renderAlerts(){let h=alerts.slice(0,4).map(a=>`<div class="item"><span class="pill">${esc(a.severity)}</span><b>🚨 ${esc(a.title)}</b><small>${esc(a.message)}</small></div>`).join("")||"<div class=item>No alerts.</div>";$("homeAlerts").innerHTML=h;$("allAlerts").innerHTML=alerts.map(a=>`<div class="item"><span class="pill">${esc(a.severity)}</span><b>🚨 ${esc(a.title)}</b><p>${esc(a.message)}</p><small>${esc((a.targetStates||["ALL"]).join(", "))} · ${tm(a.createdAt)}</small></div>`).join("")}

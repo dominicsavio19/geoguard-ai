@@ -45,3 +45,26 @@ Never upload Firebase Admin SDK service-account private keys. The web configurat
 
 ## v2 navigation repair
 The Admin navigation is now handled outside the Firebase module, so Overview/Risk Map/Reports/SOS/Broadcast/Rescue tabs remain clickable even if a Firebase or network module has a temporary error. Firebase errors are shown in the status area.
+
+## v3 repair
+Admin page rendering is isolated per section, numeric Firebase values are normalized, and a map fallback is included if the Leaflet CDN is unavailable.
+
+
+## v4 Admin fix
+The Admin uses `hidden` page switching, initializes the full map only after opening it, includes the missing `sendAlert` handler, and removes the duplicate rescue renderer.
+
+
+## v5 Rescue Dispatch
+Admin Rescue Ops now supports prototype dispatching:
+1. A mobile SOS appears in Rescue Ops in real time.
+2. Admin clicks **Dispatch Nearest Unit**.
+3. A free prototype unit is assigned and `/dispatches` is written to Firebase.
+4. The SOS record is updated with the assigned unit.
+5. Client receives a realtime Rescue Update.
+6. Admin can complete the dispatch, which resolves the SOS.
+
+This is a software prototype; unit GPS/routing and actual emergency-service integration can be added later.
+
+
+## v6 Broadcast fix
+Admin Broadcast now writes directly to `/alerts` using Firebase `push()`. Both Admin and Client listen to the same `/alerts` path. New alerts trigger an in-app toast immediately on connected pages, while the alert history is also retained.

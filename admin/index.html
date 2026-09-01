@@ -13,7 +13,23 @@
 <section id="reports" class="page"><div class="top"><div><small>COMMUNITY SIGNALS</small><h2>Hazard Reports</h2></div><select id="filter" onchange="renderReports()"><option>ALL</option><option>UNVERIFIED</option><option>UNDER REVIEW</option><option>VERIFIED</option><option>REJECTED</option></select></div><div class="card table" id="reportTable"></div></section>
 <section id="sos" class="page"><div class="top"><div><small>EMERGENCY RESPONSE</small><h2>SOS Center</h2></div></div><div class="card table" id="sosTable"></div></section>
 <section id="broadcast" class="page"><div class="top"><div><small>PUBLIC WARNING SYSTEM</small><h2>Broadcast Alert</h2><p>Write once → connected clients see it.</p></div></div><div class="formgrid"><div class="card form"><label>Alert title</label><input id="alertTitle" placeholder="Heavy rainfall warning"><label>Message</label><textarea id="alertMessage" placeholder="Safety instructions…"></textarea><label>Severity</label><select id="severity"><option>INFO</option><option>MODERATE</option><option>HIGH</option><option>CRITICAL</option></select><label>Target states</label><div id="stateChecks" class="checks"></div><button class="primary" onclick="sendAlert()">🚨 Send Alert</button><p id="alertStatus"></p></div><div class="card"><div class="head"><b>Recent Broadcasts</b></div><div id="broadcastList"></div></div></div></section>
-<section id="rescue" class="page"><div class="top"><div><small>FIELD RESPONSE</small><h2>Rescue Operations</h2></div></div><div id="rescueGrid" class="rescuegrid"></div></section>
+<section id="rescue" class="page">
+<div class="top"><div><small>FIELD RESPONSE</small><h2>Rescue Operations</h2><p>Dispatch field units to active SOS incidents and track their status in real time.</p></div></div>
+<div class="rescue-layout">
+  <div class="card">
+    <div class="head"><div><b>Active Incidents</b><small>Dispatch directly from the control room</small></div></div>
+    <div id="dispatchIncidents"></div>
+  </div>
+  <div class="card">
+    <div class="head"><div><b>Field Units</b><small>Prototype response fleet</small></div></div>
+    <div id="unitList"></div>
+  </div>
+</div>
+<div class="card dispatch-log">
+  <div class="head"><div><b>Dispatch Log</b><small>Shared through Firebase</small></div></div>
+  <div id="dispatchLog"></div>
+</div>
+</section>
 </main></div><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 window.showPage = function(id){
