@@ -10,6 +10,17 @@ import { STATES, riskColor, level } from "../shared/states.js";
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+window.addEventListener("error", e => {
+  const u = document.getElementById("updated");
+  if (u && e.message) u.textContent = "Connection error";
+  console.error("GeoGuard client error:", e.error || e.message);
+});
+window.addEventListener("unhandledrejection", e => {
+  const u = document.getElementById("updated");
+  if (u) u.textContent = "Data connection error";
+  console.error("GeoGuard client rejection:", e.reason);
+});
+
 const $ = id => document.getElementById(id);
 const esc = v => String(v ?? "").replace(/[&<>"']/g, c =>
   ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c])
