@@ -217,3 +217,6 @@ url("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fi
 .map-row{display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-bottom:1px solid var(--line)}
 .map-row b{display:block;font-size:8px}.map-row small{display:block;color:var(--muted);font-size:6px;margin-top:2px}.map-row strong{font-size:13px}
 .alert-item{display:flex;gap:9px;align-items:center}.alert-item main{flex:1;min-width:0}.alert-item main b{display:block}.alert-item main p{margin:3px 0}.alert-item main small{display:block}.alert-item .score{white-space:nowrap}
+
+/* v19 data-safe UI */
+.screen.active{display:block}
