@@ -1,7 +1,7 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
 import {
-  getDatabase, ref, onValue, onChildAdded, push, update, serverTimestamp
+  getDatabase, ref, onValue, onChildAdded, onChildChanged, onChildRemoved, push, update, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
 import { firebaseConfig } from "../firebase-config.js";
 import { STATES, riskColor, level } from "../shared/states.js";
@@ -294,35 +294,53 @@ onValue(ref(db, "reports"), snap => {
 });
 
 
-function mergeAlert(a){
-  if(!a || !a.id) return;
-  const idx=alerts.findIndex(x=>x.id===a.id);
-  if(idx>=0) alerts[idx]={...alerts[idx],...a};
-  else alerts.push(a);
-  alerts.sort((x,y)=>Number(y.createdAt||0)-Number(x.createdAt||0));
+
+const alertStore = new Map();
+
+function syncAlertArray(){
+  alerts = Array.from(alertStore.values())
+    .sort((a,b) => Number(b.createdAt||0) - Number(a.createdAt||0));
   cacheAlerts();
   renderAlerts();
 }
-onValue(ref(db, "alerts"), snap => {
-  const remote=[];
-  snap.forEach(x=>remote.push({id:x.key,...(x.val()||{})}));
-  remote.sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0));
-  if(remote.length){
-    alerts=remote;
-    firebaseAlertsLoaded=true;
-    cacheAlerts();
-  }
-  renderAlerts();
-}, err => {
-  console.error("alerts read",err);
-  renderAlerts();
-});
+
+function mergeAlert(a){
+  if(!a || !a.id) return;
+  alertStore.set(a.id, a);
+  syncAlertArray();
+}
+
 onChildAdded(ref(db, "alerts"), snap => {
-  const a={id:snap.key,...(snap.val()||{})};
-  const wasKnown=alerts.some(x=>x.id===a.id);
+  const a = {id:snap.key, ...(snap.val()||{})};
+  const wasKnown = alertStore.has(a.id);
   mergeAlert(a);
-  if(firebaseAlertsLoaded && !wasKnown) showClientAlert(a);
+  firebaseAlertsLoaded = true;
+  if(!wasKnown) showClientAlert(a);
 });
+
+onChildChanged(ref(db, "alerts"), snap => {
+  mergeAlert({id:snap.key, ...(snap.val()||{})});
+});
+
+onChildRemoved(ref(db, "alerts"), snap => {
+  alertStore.delete(snap.key);
+  syncAlertArray();
+});
+
+// A one-time read hydrates the store on page load without ever replacing
+// records subsequently delivered by the realtime child stream.
+onValue(ref(db, "alerts"), snap => {
+  snap.forEach(child => {
+    const a = {id:child.key, ...(child.val()||{})};
+    if(!alertStore.has(a.id)) alertStore.set(a.id, a);
+  });
+  firebaseAlertsLoaded = true;
+  syncAlertArray();
+}, err => {
+  console.error("alerts read", err);
+  renderAlerts();
+});
+
 onValue(ref(db, "dispatches"), snap => {
   dispatches = [];
   snap.forEach(x => dispatches.push({id:x.key, ...(x.val() || {})}));
@@ -334,7 +352,7 @@ onValue(ref(db, "dispatches"), snap => {
 $("stateSelect").innerHTML = STATES.map(s => `<option>${esc(s.name)}</option>`).join("");
 
 loadCachedAlerts();
-loadCachedAlerts();
+for(const a of alerts) alertStore.set(a.id,a);
 renderState();
 renderReports();
 renderAlerts();

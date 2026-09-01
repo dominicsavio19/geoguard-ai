@@ -1,6 +1,6 @@
 const targetList=v=>Array.isArray(v)?v:(v==null||v===""?["ALL"]:[String(v)]);
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-import {getDatabase,ref,onValue,onChildAdded,get,push,update,serverTimestamp,set} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+import {getDatabase,ref,onValue,onChildAdded,onChildChanged,onChildRemoved,get,push,update,serverTimestamp,set} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
 import {firebaseConfig} from "../firebase-config.js";
 import {STATES,riskColor,level} from "../shared/states.js";
 const app=initializeApp(firebaseConfig),db=getDatabase(app);let snapshot=null,reports=[],sos=[],alerts=[],maps={},layers={},lastAlertKeys=new Set(),alertsReady=false;
@@ -10,28 +10,44 @@ window.renderCurrentPage=()=>{try{if(document.getElementById("reports")?.classLi
 onValue(ref(db,"state"),s=>{snapshot=s.val();renderState();$("status").textContent="Realtime Database connected";},e=>{$("status").textContent="Firebase read error";});
 onValue(ref(db,"reports"),s=>{reports=[];s.forEach(x=>reports.push({id:x.key,...x.val()}));reports.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));renderAll();},e=>{$("status").textContent="Reports read error";});
 onValue(ref(db,"sos"),s=>{sos=[];s.forEach(x=>sos.push({id:x.key,...x.val()}));sos.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));renderAll();},e=>{$("status").textContent="SOS read error";});
-onValue(ref(db,"alerts"),s=>{
-  const next=[];
-  s.forEach(x=>next.push({id:x.key,...x.val()}));
-  next.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-  alerts=next;
-  lastAlertKeys=new Set(next.map(a=>a.id));
-  alertsReady=true;
+const alertStore = new Map();
+
+function syncAdminAlerts(){
+  alerts=Array.from(alertStore.values())
+    .sort((a,b)=>(Number(b.createdAt)||0)-(Number(a.createdAt)||0));
   renderAll();
-  const d=$("alertDebug"); if(d) d.textContent=`Realtime alert stream: connected · ${alerts.length} stored alert(s)`;
-},e=>{const d=$("alertDebug");if(d)d.textContent="Realtime alert stream: ERROR";$("status").textContent="Firebase alerts read error";});
+  const d=$("alertDebug");
+  if(d)d.textContent=`Realtime alert stream: connected · ${alerts.length} stored alert(s)`;
+}
 
 onChildAdded(ref(db,"alerts"),snap=>{
   const a={id:snap.key,...(snap.val()||{})};
-  const exists=alerts.some(x=>x.id===a.id);
-  if(!exists){
-    alerts.unshift(a);
-    alerts.sort((x,y)=>(y.createdAt||0)-(x.createdAt||0));
-    renderAll();
-    if(alertsReady){ showAdminAlert(a); const d=$("alertDebug"); if(d)d.textContent=`Realtime alert stream: received new alert · ${a.id}`; }
-  }
-  lastAlertKeys.add(a.id);
-},e=>{$("status").textContent="Firebase alert stream error";});
+  const fresh=!alertStore.has(a.id);
+  alertStore.set(a.id,a);
+  syncAdminAlerts();
+  if(alertsReady && fresh) showAdminAlert(a);
+});
+
+onChildChanged(ref(db,"alerts"),snap=>{
+  alertStore.set(snap.key,{id:snap.key,...(snap.val()||{})});
+  syncAdminAlerts();
+});
+
+onChildRemoved(ref(db,"alerts"),snap=>{
+  alertStore.delete(snap.key);
+  syncAdminAlerts();
+});
+
+onValue(ref(db,"alerts"),snap=>{
+  snap.forEach(x=>{
+    if(!alertStore.has(x.key)) alertStore.set(x.key,{id:x.key,...(x.val()||{})});
+  });
+  alertsReady=true;
+  syncAdminAlerts();
+},e=>{
+  const d=$("alertDebug");if(d)d.textContent="Realtime alert stream: ERROR";
+  $("status").textContent="Firebase alerts read error";
+});
 
 let dispatches=[];
 onValue(ref(db,"dispatches"),s=>{
