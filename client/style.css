@@ -213,35 +213,7 @@ url("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fi
 }
 .map-wrap .leaflet-tooltip-pane{z-index:650}
 
-
-/* V17 compatibility: preserve v16 functional map styling */
-.map-wrap .leaflet-container{font-family:Inter,system-ui,sans-serif}
-.map-wrap .leaflet-interactive{transition:fill-opacity .16s ease,stroke-width .16s ease}
-.map-wrap .leaflet-tile-pane{filter:saturate(.65) brightness(.58) contrast(1.08)}
-.district-tooltip{
-  background:rgba(5,12,16,.90)!important;
-  border:1px solid rgba(255,255,255,.25)!important;
-  border-radius:9px!important;
-  color:#fff!important;
-  box-shadow:0 8px 18px rgba(0,0,0,.3)!important;
-  padding:5px 7px!important;
-  font-size:7px!important;
-}
-.district-tooltip:before{display:none!important}
-.district-name-label strong{display:block;font-size:7px}
-.district-name-label span{display:block;font-size:5.5px;color:#b9cbd5;margin-top:2px}
-.district-name-label em{display:block;font-size:5.5px;color:#78e0ae;font-style:normal;margin-top:2px}
-.region-popup b,.region-popup span,.region-popup strong,.region-popup small{display:block}
-.region-popup span{font-size:7px;color:#718b9e;margin-top:3px}
-.region-popup strong{font-size:8px;margin-top:5px}
-.region-popup small{font-size:6px;color:#718b9e;margin-top:4px}
-.map-subtitle{display:block;margin-top:4px;font-size:7px;color:#718a99}
-.emergency-status{margin:10px 0 12px;border-radius:14px;padding:9px 11px;border:1px solid rgba(255,101,112,.18);background:rgba(30,10,16,.5)}
-.emergency-status b{display:block;font-size:7px}
-.emergency-status small{display:block;margin-top:3px;color:#8299a8;font-size:6px}
-.emergency-status.dispatched{border-color:rgba(120,185,255,.2);background:rgba(12,29,45,.6)}
-.emergency-status.dispatched b{color:#78b9ff}
-.emergency-status.complete{border-color:rgba(69,224,165,.2);background:rgba(7,30,25,.6)}
-.emergency-status.complete b{color:#45e0a5}
-.emergency-status.active b{color:#ff6570}
-.alert-history-card{display:block!important;visibility:visible!important;opacity:1!important}
+/* V18 Firebase compatibility */
+.map-row{display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-bottom:1px solid var(--line)}
+.map-row b{display:block;font-size:8px}.map-row small{display:block;color:var(--muted);font-size:6px;margin-top:2px}.map-row strong{font-size:13px}
+.alert-item{display:flex;gap:9px;align-items:center}.alert-item main{flex:1;min-width:0}.alert-item main b{display:block}.alert-item main p{margin:3px 0}.alert-item main small{display:block}.alert-item .score{white-space:nowrap}
