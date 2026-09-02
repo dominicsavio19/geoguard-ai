@@ -4,11 +4,18 @@ import {
   getDatabase, ref, onValue, onChildAdded, onChildChanged,
   onChildRemoved, push, update, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+import {
+  getStorage,
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js";
 import { firebaseConfig } from "../firebase-config.js";
 import { STATES, riskColor, level } from "../shared/states.js";
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const storage = getStorage(app);
 
 window.addEventListener("error", e => {
   const u = document.getElementById("updated");
@@ -378,47 +385,213 @@ function showClientAlert(a){
 }
 
 /* ---------- REPORTS ---------- */
+
+let reportFile = null;
+
 window.attachReportLocation=function(){
-  if(!navigator.geolocation){toast("GPS unavailable");return}
+  if(!navigator.geolocation){
+    toast("GPS unavailable");
+    return;
+  }
+
   toast("Requesting location…");
-  navigator.geolocation.getCurrentPosition(p=>{
-    reportCoords={lat:p.coords.latitude,lon:p.coords.longitude};
-    $("reportLocation").textContent=`${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`;
-    toast("Location attached ✓");
-  },()=>toast("Could not access location"));
+
+  navigator.geolocation.getCurrentPosition(
+    p=>{
+      reportCoords={
+        lat:p.coords.latitude,
+        lon:p.coords.longitude,
+        accuracy:p.coords.accuracy
+      };
+
+      $("reportLocation").textContent =
+        `${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`;
+
+      toast("Location attached ✓");
+    },
+    err=>{
+      console.error("Report GPS error:",err);
+      if(err.code===1) toast("Location permission denied");
+      else if(err.code===2) toast("Location unavailable");
+      else if(err.code===3) toast("Location request timed out");
+      else toast("Could not access location");
+    },
+    {
+      enableHighAccuracy:true,
+      maximumAge:5000,
+      timeout:15000
+    }
+  );
 };
 
 function preview(file){
   if(!file)return;
+
+  reportFile=file;
+
   const box=$("photoPreview");
+  if(!box)return;
+
   box.hidden=false;
-  box.innerHTML=`<img src="${URL.createObjectURL(file)}" alt="Evidence preview"><div style="padding:6px 8px">${esc(file.name)}</div>`;
+  box.innerHTML=`
+    <img
+      src="${URL.createObjectURL(file)}"
+      alt="Evidence preview"
+    >
+    <div style="padding:6px 8px">${esc(file.name)}</div>
+  `;
+
+  toast("Photo attached ✓");
 }
-$("camera")?.addEventListener("change",e=>preview(e.target.files?.[0]));
-$("gallery")?.addEventListener("change",e=>preview(e.target.files?.[0]));
+
+$("camera")?.addEventListener("change",e=>{
+  const file=e.target.files?.[0];
+  if(file)preview(file);
+});
+
+$("gallery")?.addEventListener("change",e=>{
+  const file=e.target.files?.[0];
+  if(file)preview(file);
+});
 
 $("submitReport")?.addEventListener("click",async()=>{
   const type=$("reportType")?.value;
   const desc=$("reportDescription")?.value.trim()||"";
-  if(!type){toast("Select an incident type");return}
+
+  if(!type){
+    toast("Select an incident type");
+    return;
+  }
+
+  const button=$("submitReport");
+
   try{
-    await push(ref(db,"reports"),{
-      category:type,description:desc,
-      latitude:reportCoords?.lat||null,longitude:reportCoords?.lon||null,
-      state:"North-East India",city:"Community report",
-      status:"UNVERIFIED",createdAt:serverTimestamp()
-    });
+    button.disabled=true;
+    button.textContent="Sending…";
+
+    /* ---------- GET GPS AUTOMATICALLY ---------- */
+    if(!reportCoords){
+      if(!navigator.geolocation){
+        throw new Error("GPS unavailable");
+      }
+
+      toast("Getting your location…");
+
+      reportCoords=await new Promise((resolve,reject)=>{
+        navigator.geolocation.getCurrentPosition(
+          p=>resolve({
+            lat:p.coords.latitude,
+            lon:p.coords.longitude,
+            accuracy:p.coords.accuracy
+          }),
+          reject,
+          {
+            enableHighAccuracy:true,
+            maximumAge:5000,
+            timeout:15000
+          }
+        );
+      });
+
+      $("reportLocation").textContent=
+        `${reportCoords.lat.toFixed(5)}, ${reportCoords.lon.toFixed(5)}`;
+    }
+
+    /* ---------- UPLOAD PHOTO TO FIREBASE STORAGE ---------- */
+    let imageUrl=null;
+
+    if(reportFile){
+      toast("Uploading evidence photo…");
+
+      const safeName=reportFile.name
+        .replace(/[^a-zA-Z0-9._-]/g,"_");
+
+      const filePath=
+        `reports/${clientId}/${Date.now()}_${safeName}`;
+
+      const imageRef=storageRef(storage,filePath);
+
+      await uploadBytes(imageRef,reportFile,{
+        contentType:reportFile.type||"image/jpeg"
+      });
+
+      imageUrl=await getDownloadURL(imageRef);
+
+      console.log("Report image uploaded:",imageUrl);
+    }
+
+    /* ---------- SAVE REPORT TO REALTIME DATABASE ---------- */
+    toast("Sending report to control room…");
+
+    const reportData={
+      category:type,
+      description:desc,
+
+      latitude:reportCoords.lat,
+      longitude:reportCoords.lon,
+      locationAccuracy:reportCoords.accuracy||null,
+
+      state:"North-East India",
+      city:"Community report",
+
+      status:"UNVERIFIED",
+
+      imageUrl:imageUrl,
+      clientId:clientId,
+
+      createdAt:serverTimestamp()
+    };
+
+    const created=await push(
+      ref(db,"reports"),
+      reportData
+    );
+
+    console.log("Report created:",created.key);
+
+    /* ---------- RESET FORM ---------- */
     $("reportType").value="";
     $("reportDescription").value="";
+
+    if($("camera"))$("camera").value="";
+    if($("gallery"))$("gallery").value="";
+
     $("photoPreview").hidden=true;
     $("photoPreview").innerHTML="";
+
+    reportFile=null;
     reportCoords=null;
+
     $("reportLocation").textContent="Not attached";
+
     toast("Field report sent to control room ✓");
     openScreen("alertsScreen");
+
   }catch(e){
-    console.error(e);
-    toast("Could not send field report");
+    console.error("REPORT ERROR:",e);
+
+    if(e.code==="storage/unauthorized"){
+      toast("Photo upload permission denied");
+    }
+    else if(e.code==="storage/unknown"){
+      toast("Photo upload failed");
+    }
+    else if(e.code===1){
+      toast("Location permission denied");
+    }
+    else if(e.code===2){
+      toast("Location unavailable");
+    }
+    else if(e.code===3){
+      toast("Location request timed out");
+    }
+    else{
+      toast("Could not send field report");
+    }
+
+  }finally{
+    button.disabled=false;
+    button.textContent="Submit report";
   }
 });
 
