@@ -362,31 +362,31 @@ h1 {
 
 /* Alerts */
 .alert-summary strong {
-  font-size: 12px;
+  font-size: 16px;
 }
 
 .alert-summary small {
-  font-size: 8px;
+  font-size: 11px;
 }
 
 .filter {
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .alert-item b {
-  font-size: 12px;
+  font-size: 15px;
 }
 
 .alert-item p {
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .alert-item small {
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .alert-item .score {
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .tag {
@@ -406,7 +406,7 @@ h1 {
 }
 
 .input-label {
-  font-size: 9px;
+  font-size: 24px;
   margin: 13px 0 7px;
 }
 
@@ -424,11 +424,11 @@ textarea {
 }
 
 .capture-btn strong {
-  font-size: 11px;
+  font-size: 16px;
 }
 
 .capture-btn small {
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .photo-preview {
@@ -436,19 +436,19 @@ textarea {
 }
 
 .location-row label {
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .location-row strong {
-  font-size: 11px;
+  font-size: 14px;
 }
 
 .location-row button {
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .primary-btn {
-  font-size: 14px;
+  font-size: 24px;
   padding: 14px 12px;
 }
 
@@ -544,7 +544,7 @@ textarea {
 
 /* Bottom navigation */
 .nav b {
-  font-size: 8px;
+  font-size: 20px;
 }
 
 /* Toast */
@@ -571,4 +571,98 @@ textarea {
 
 .district-name-label em {
   font-size: 6px;
+}
+
+
+/* =========================================================
+   V21 — LARGE MOBILE TEXT OVERRIDES
+   Requested sizes:
+   Report labels 24px · inputs 16px · submit 24px · nav 20px
+   ========================================================= */
+
+.input-label {
+  font-size: 24px !important;
+  line-height: 1.15;
+}
+
+select,
+textarea {
+  font-size: 16px !important;
+}
+
+.capture-btn span {
+  font-size: 28px !important;
+}
+
+.capture-btn strong {
+  font-size: 16px !important;
+}
+
+.capture-btn small {
+  font-size: 12px !important;
+}
+
+.location-row > div > span {
+  font-size: 24px !important;
+}
+
+.location-row label {
+  font-size: 10px !important;
+}
+
+.location-row strong {
+  font-size: 14px !important;
+}
+
+.location-row button {
+  font-size: 12px !important;
+  padding: 9px 12px;
+}
+
+.primary-btn {
+  font-size: 24px !important;
+  padding: 16px 12px;
+  line-height: 1.15;
+}
+
+.nav b {
+  font-size: 20px !important;
+}
+
+.nav span {
+  font-size: 22px;
+}
+
+/* Alerts */
+.alert-summary strong {
+  font-size: 16px !important;
+}
+
+.alert-summary small {
+  font-size: 11px !important;
+}
+
+.filter {
+  font-size: 12px !important;
+}
+
+.alert-item b {
+  font-size: 15px !important;
+}
+
+.alert-item p {
+  font-size: 12px !important;
+  line-height: 1.45;
+}
+
+.alert-item small {
+  font-size: 10px !important;
+}
+
+.alert-item .score {
+  font-size: 14px !important;
+}
+
+.tag {
+  font-size: 8px !important;
 }
