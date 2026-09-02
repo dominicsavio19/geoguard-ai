@@ -454,7 +454,26 @@ $("gallery")?.addEventListener("change",e=>{
   if(file)preview(file);
 });
 
-$("submitReport")?.addEventListener("click",async()=>{
+function reportProgress(message){
+  const button=$("submitReport");
+  if(button) button.textContent=message;
+  toast(message);
+}
+
+function withTimeout(promise, ms, message){
+  return Promise.race([
+    promise,
+    new Promise((_,reject)=>
+      setTimeout(()=>reject(new Error(message)),ms)
+    )
+  ]);
+}
+
+$("submitReport")?.addEventListener("click",async e=>{
+  // Prevent a surrounding <form> from reloading/navigating the page.
+  e?.preventDefault?.();
+  e?.stopPropagation?.();
+
   const type=$("reportType")?.value;
   const desc=$("reportDescription")?.value.trim()||"";
 
@@ -467,7 +486,7 @@ $("submitReport")?.addEventListener("click",async()=>{
 
   try{
     button.disabled=true;
-    button.textContent="Sending…";
+    button.textContent="Preparing…";
 
     /* ---------- GET GPS AUTOMATICALLY ---------- */
     if(!reportCoords){
@@ -475,9 +494,9 @@ $("submitReport")?.addEventListener("click",async()=>{
         throw new Error("GPS unavailable");
       }
 
-      toast("Getting your location…");
+      reportProgress("Getting GPS…");
 
-      reportCoords=await new Promise((resolve,reject)=>{
+      reportCoords=await withTimeout(new Promise((resolve,reject)=>{
         navigator.geolocation.getCurrentPosition(
           p=>resolve({
             lat:p.coords.latitude,
@@ -491,7 +510,7 @@ $("submitReport")?.addEventListener("click",async()=>{
             timeout:15000
           }
         );
-      });
+      }),20000,"GPS request timed out");
 
       $("reportLocation").textContent=
         `${reportCoords.lat.toFixed(5)}, ${reportCoords.lon.toFixed(5)}`;
@@ -501,7 +520,7 @@ $("submitReport")?.addEventListener("click",async()=>{
     let imageUrl=null;
 
     if(reportFile){
-      toast("Uploading evidence photo…");
+      reportProgress("Uploading photo…");
 
       const safeName=reportFile.name
         .replace(/[^a-zA-Z0-9._-]/g,"_");
@@ -511,17 +530,27 @@ $("submitReport")?.addEventListener("click",async()=>{
 
       const imageRef=storageRef(storage,filePath);
 
-      await uploadBytes(imageRef,reportFile,{
-        contentType:reportFile.type||"image/jpeg"
-      });
+      await withTimeout(
+        uploadBytes(imageRef,reportFile,{
+          contentType:reportFile.type||"image/jpeg"
+        }),
+        30000,
+        "Photo upload timed out"
+      );
 
-      imageUrl=await getDownloadURL(imageRef);
+      reportProgress("Getting photo URL…");
+
+      imageUrl=await withTimeout(
+        getDownloadURL(imageRef),
+        15000,
+        "Could not get photo URL"
+      );
 
       console.log("Report image uploaded:",imageUrl);
     }
 
     /* ---------- SAVE REPORT TO REALTIME DATABASE ---------- */
-    toast("Sending report to control room…");
+    reportProgress("Saving report…");
 
     const reportData={
       category:type,
@@ -542,9 +571,10 @@ $("submitReport")?.addEventListener("click",async()=>{
       createdAt:serverTimestamp()
     };
 
-    const created=await push(
-      ref(db,"reports"),
-      reportData
+    const created=await withTimeout(
+      push(ref(db,"reports"),reportData),
+      20000,
+      "Database write timed out"
     );
 
     console.log("Report created:",created.key);
@@ -575,6 +605,18 @@ $("submitReport")?.addEventListener("click",async()=>{
     }
     else if(e.code==="storage/unknown"){
       toast("Photo upload failed");
+    }
+    else if(e.message==="Photo upload timed out"){
+      toast("Photo upload timed out — check Firebase Storage");
+    }
+    else if(e.message==="Could not get photo URL"){
+      toast("Photo uploaded but URL could not be read");
+    }
+    else if(e.message==="Database write timed out"){
+      toast("Report database write timed out — check Firebase rules/network");
+    }
+    else if(e.message==="GPS request timed out"){
+      toast("GPS timed out — allow location access and try again");
     }
     else if(e.code===1){
       toast("Location permission denied");
