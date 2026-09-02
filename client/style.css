@@ -220,3 +220,355 @@ url("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fi
 
 /* v19 data-safe UI */
 .screen.active{display:block}
+
+/* =========================================================
+   V20 — MOBILE READABILITY BOOST
+   Keeps the existing GeoGuard UI/layout, but makes text
+   substantially easier to read on phones.
+   ========================================================= */
+
+body {
+  font-size: 16px;
+}
+
+/* Main headings */
+h1 {
+  font-size: 31px;
+}
+
+.screen-head h2 {
+  font-size: 27px;
+}
+
+/* Header / branding */
+.brand strong {
+  font-size: 15px;
+}
+
+.brand small {
+  font-size: 9px;
+}
+
+/* Small labels / section headings */
+.eyebrow,
+.section-title span,
+.screen-head > div > span {
+  font-size: 10px;
+}
+
+.section-title div span {
+  font-size: 9px;
+}
+
+.section-title div b {
+  font-size: 16px;
+}
+
+.section-title button {
+  font-size: 10px;
+}
+
+/* Home / risk cards */
+.updated {
+  font-size: 9px;
+}
+
+.regional-copy > span {
+  font-size: 9px;
+}
+
+.regional-copy > b {
+  font-size: 19px;
+}
+
+.regional-copy > small {
+  font-size: 9px;
+}
+
+.risk-ring small {
+  font-size: 9px;
+}
+
+.weather-head > div:first-child > span {
+  font-size: 9px;
+}
+
+.weather-head small {
+  font-size: 9px;
+}
+
+.weather-grid span,
+.prediction-row span {
+  font-size: 8px;
+}
+
+.weather-grid b {
+  font-size: 17px;
+}
+
+.weather-grid small {
+  font-size: 8px;
+}
+
+.prediction-row b {
+  font-size: 12px;
+}
+
+.prediction-row > div:first-child > small {
+  font-size: 8px;
+}
+
+.score-pill {
+  font-size: 12px;
+}
+
+.priority-card small {
+  font-size: 9px;
+}
+
+.priority-card b {
+  font-size: 15px;
+}
+
+.priority-card em {
+  font-size: 9px;
+}
+
+/* SOS home */
+.sos-home strong {
+  font-size: 13px;
+}
+
+.sos-home small {
+  font-size: 9px;
+}
+
+/* Map */
+.map-key {
+  font-size: 8px;
+}
+
+.map-row small {
+  font-size: 8px;
+}
+
+.map-row b {
+  font-size: 12px;
+}
+
+.map-row strong {
+  font-size: 14px;
+}
+
+/* Alerts */
+.alert-summary strong {
+  font-size: 12px;
+}
+
+.alert-summary small {
+  font-size: 8px;
+}
+
+.filter {
+  font-size: 9px;
+}
+
+.alert-item b {
+  font-size: 12px;
+}
+
+.alert-item p {
+  font-size: 9px;
+}
+
+.alert-item small {
+  font-size: 8px;
+}
+
+.alert-item .score {
+  font-size: 12px;
+}
+
+.tag {
+  font-size: 7px;
+}
+
+/* =========================================================
+   REPORT SCREEN — biggest readability improvement
+   ========================================================= */
+
+.report-note strong {
+  font-size: 12px;
+}
+
+.report-note small {
+  font-size: 9px;
+}
+
+.input-label {
+  font-size: 9px;
+  margin: 13px 0 7px;
+}
+
+select,
+textarea {
+  font-size: 16px;
+}
+
+select {
+  height: 46px;
+}
+
+textarea {
+  height: 82px;
+}
+
+.capture-btn strong {
+  font-size: 11px;
+}
+
+.capture-btn small {
+  font-size: 9px;
+}
+
+.photo-preview {
+  font-size: 9px;
+}
+
+.location-row label {
+  font-size: 8px;
+}
+
+.location-row strong {
+  font-size: 11px;
+}
+
+.location-row button {
+  font-size: 9px;
+}
+
+.primary-btn {
+  font-size: 14px;
+  padding: 14px 12px;
+}
+
+.privacy-note {
+  font-size: 8px;
+}
+
+/* States */
+.state-overview span {
+  font-size: 8px;
+}
+
+.state-overview small {
+  font-size: 8px;
+}
+
+.state-card small {
+  font-size: 8px;
+}
+
+.state-card b {
+  font-size: 12px;
+}
+
+.state-card em {
+  font-size: 8px;
+}
+
+/* SOS screen */
+.sos-top > span {
+  font-size: 10px;
+}
+
+.sos-live {
+  font-size: 8px;
+}
+
+.sos-title span {
+  font-size: 10px;
+}
+
+.sos-title p {
+  font-size: 10px;
+}
+
+.sos-consent strong {
+  font-size: 11px;
+}
+
+.sos-consent small {
+  font-size: 8px;
+}
+
+.sos-confirm {
+  font-size: 11px;
+}
+
+.sos-footer {
+  font-size: 8px;
+}
+
+.gps-status strong {
+  font-size: 10px;
+}
+
+.gps-status small {
+  font-size: 8px;
+}
+
+.live-coords small {
+  font-size: 8px;
+}
+
+.live-coords strong {
+  font-size: 12px;
+}
+
+.live-coords em {
+  font-size: 8px;
+}
+
+.share-status small {
+  font-size: 7px;
+}
+
+.share-status strong {
+  font-size: 9px;
+}
+
+.stop-sos {
+  font-size: 10px;
+}
+
+/* Bottom navigation */
+.nav b {
+  font-size: 8px;
+}
+
+/* Toast */
+.toast {
+  font-size: 10px;
+}
+
+/* Map labels — keep them readable without making the map crowded */
+.region-label strong {
+  font-size: 10px;
+}
+
+.region-label span {
+  font-size: 7px;
+}
+
+.district-name-label strong {
+  font-size: 8px;
+}
+
+.district-name-label span {
+  font-size: 6px;
+}
+
+.district-name-label em {
+  font-size: 6px;
+}
