@@ -666,3 +666,25 @@ textarea {
 .tag {
   font-size: 8px !important;
 }
+
+
+/* Alert popup readability - 20px minimum */
+.alert-modal strong,
+.alert-modal h1,
+.alert-modal h2,
+.alert-modal h3,
+.alert-popup strong,
+.alert-popup h1,
+.alert-popup h2,
+.alert-popup h3,
+.alert-popup .title,
+.alert-popup .message,
+.alert-modal .title,
+.alert-modal .message {
+  font-size: 20px !important;
+}
+
+.alert-modal p,
+.alert-popup p {
+  font-size: 20px !important;
+}
